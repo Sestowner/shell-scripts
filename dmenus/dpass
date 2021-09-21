@@ -1,0 +1,21 @@
+#!/bin/sh
+
+passcopy() {
+	pfile=$(printf "$(find ~/.password-store/ -name "*.gpg" -printf "%P\n" | sed "s/\.gpg$//1")" | dmenu -i)
+
+	[ -z $pfile ] && exit
+
+	if [ "$1" = "username" ]; then
+		echo "$pfile" | tr "/" "\n" | tail -1 | xclip -sel c
+		exit
+	fi
+
+	pass $1 -c "$pfile"
+}
+
+case "$(printf "password\nOTP\nusername" | dmenu -i)" in
+	password ) passcopy ;;
+	username ) passcopy username ;;
+	OTP ) passcopy otp ;;
+esac
+

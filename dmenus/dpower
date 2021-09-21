@@ -1,0 +1,8 @@
+#!/bin/sh
+
+case "$(printf "Shutdown\nReboot\nSuspend" | dmenu -i)" in
+	"Shutdown") dconfirm "Are you sure you want to shutdown?" systemctl poweroff ;;
+	"Reboot") dconfirm "Are you sure you want to reboot?" systemctl reboot ;;
+	"Suspend") "$(slock $(sleep 1 && systemctl suspend))" ;;
+esac
+

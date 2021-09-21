@@ -1,0 +1,25 @@
+#!/bin/sh
+
+appendtopass() {
+	pfile=$(printf  "$(find ~/.password-store/ -name "*.gpg" -printf "%P\n" | sed "s/\.gpg$//1")" | dmenu -i)
+	[ -z $pfile ] && exit
+	echo "$QRVALUE" | pass otp append "$pfile"
+}
+
+save() {
+	file=$(echo | dmenu -p "Enter a file name:")
+	[ -z $file ] && exit
+	echo "$QRVALUE" >> "$file"
+}
+
+QRVALUE=$(import -silent png:- | zbarimg -q --raw -)
+
+[ -z $QRVALUE ] && exit
+
+case "$(printf "$(pass otp validate $QRVALUE && echo "Append OTP\\\n")Copy\nSave\nDisplay" | dmenu -i)" in
+	"Append OTP" ) appendtopass ;;
+	"Copy" ) echo "$QRVALUE" | xclip -sel c ;;
+	"Save" ) save ;;
+	"Display" ) notify-send "QR Value" "$QRVALUE" ;;
+esac
+

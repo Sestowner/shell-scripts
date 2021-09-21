@@ -1,0 +1,42 @@
+#!/bin/sh
+
+cmpv() {
+	case $ACTION in
+		toggle ) echo cycle pause | socat - /tmp/mpvsocket ;;
+		prev ) echo playlist_prev | socat - /tmp/mpvsocket ;;
+		next ) echo playlist_next | socat - /tmp/mpvsocket ;;
+		add ) echo loadfile "$1" append-play | socat - /tmp/mpvsocket ;;
+		* ) echo '{ "command": ["get_property_string", "media-title"] }' | socat - /tmp/mpvsocket | grep -Po '(?<=\{"data":").*(?=","request_id":)' ;;
+	esac
+}
+
+cmpris () {
+	bus=$(dbus-send --session --dest=org.freedesktop.DBus --type=method_call \
+		--print-reply=literal /org/freedesktop/DBus org.freedesktop.DBus.ListNames |
+		tr ' ' '\n' | grep 'org.mpris.MediaPlayer2' | head -1
+	)
+
+	[ -n $bus ] && dbus-send --type=method_call --dest=$bus /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.$(
+		case "$ACTION" in toggle ) echo PlayPause ;; prev ) echo Previous ;; current ) echo OpenUri ;; * ) echo $(echo $ACTION | sed 's/./\u&/') ;; esac
+	)
+}
+
+
+if [ -n "$2" ]; then
+	PLAYER=$2
+elif [ "$(pidof mpd || pgrep mopidy)" ]; then
+	PLAYER='mpc'
+elif [ "$(pidof mpv)" ]; then
+	PLAYER='mpv'
+else
+	PLAYER='mpris'
+fi
+
+ACTION=$1
+
+case "$PLAYER" in
+	mpc ) mpc $ACTION ;;
+	mpv ) cmpv $3 ;;
+	* ) cmpris
+esac
+

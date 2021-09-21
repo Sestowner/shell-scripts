@@ -1,0 +1,6 @@
+#!/bin/sh
+
+arg=${1:-.}
+choice="$(ls -Fp1 "$arg" | dmenu -l 20)"
+[ -n "$choice" ] && xdg-open "$(realpath "$arg")/$choice" &
+

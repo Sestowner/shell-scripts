@@ -1,0 +1,16 @@
+#!/bin/sh
+
+LOCATION="$HOME/pictures/screenshots"
+
+save() {
+	[ -f $LOCATION ] || mkdir -p $LOCATION
+	echo "$LOCATION/$(date +%F_%H%M%S_%N).png"
+}
+
+case "$1" in
+	window | w) import -window "$(xprop -root | grep "_NET_ACTIVE_WINDOW(WINDOW)" | cut -d' ' -f5)" $(save) ;;
+	area | a) import $(save) ;;
+	select | s) import -window 0 $(save) ;;
+	* ) import -window root $(save)
+esac
+

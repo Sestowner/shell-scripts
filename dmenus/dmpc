@@ -1,0 +1,4 @@
+#!/bin/sh
+
+mpc play $(mpc playlist -f "[%position%] [%file%]" | dmenu -i | cut -d" " -f1)
+

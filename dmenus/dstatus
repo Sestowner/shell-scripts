@@ -1,0 +1,16 @@
+#!/bin/sh
+
+ITEMS="\
+🎧 $(mpctl current)
+⌨ $(setxkbmap -query | grep -Po "(?<=layout:\s{5}).*" | tr "," "\n" | head -n "$(($(xset -q | grep -Po "(?<=LED mask:\s{2}\d{4})\d(?=\d{3})")+1))" | tail -1)
+🔋 $(cat /sys/class/power_supply/BAT1/capacity)%
+🔊 $(amixer -c1 get Master | awk -F"[][]" '/Mono.+/ {print $6=="off"?$6:$2}')
+🌐 $(ip r g 1 | cut -d' ' -f7)
+$(date +"📅 %d-%m-%Y\n⌚ %H:%M")
+"
+
+case "$(echo "$ITEMS" | grep -n "$(echo "$ITEMS"| dmenu -i)" | cut -d: -f1)" in
+	4) st -e pulsemixer & ;;
+	6) st -e calcurse & ;;
+esac
+
