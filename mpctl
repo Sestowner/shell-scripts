@@ -2,11 +2,11 @@
 
 cmpv() {
 	case $ACTION in
-		toggle ) echo cycle pause | socat - /tmp/mpvsocket ;;
-		prev ) echo playlist_prev | socat - /tmp/mpvsocket ;;
-		next ) echo playlist_next | socat - /tmp/mpvsocket ;;
-		add ) echo loadfile "$1" append-play | socat - /tmp/mpvsocket ;;
-		* ) echo '{ "command": ["get_property_string", "media-title"] }' | socat - /tmp/mpvsocket | grep -Po '(?<=\{"data":").*(?=","request_id":)' ;;
+		toggle ) echo cycle pause | nc local:/tmp/mpvsocket ;;
+		prev ) echo playlist_prev | nc local:/tmp/mpvsocket ;;
+		next ) echo playlist_next | nc local:/tmp/mpvsocket ;;
+		add ) echo loadfile "$1" append-play | nc local:/tmp/mpvsocket ;;
+		* ) echo '{ "command": ["get_property_string", "media-title"] }' | nc local:/tmp/mpvsocket | grep -Po '(?<=\{"data":").*(?=","request_id":)' ;;
 	esac
 }
 
