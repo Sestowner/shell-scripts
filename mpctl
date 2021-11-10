@@ -6,7 +6,7 @@ cmpv() {
 		prev ) echo playlist_prev | nc local:/tmp/mpvsocket ;;
 		next ) echo playlist_next | nc local:/tmp/mpvsocket ;;
 		add ) echo loadfile "$1" append-play | nc local:/tmp/mpvsocket ;;
-		* ) echo '{ "command": ["get_property_string", "media-title"] }' | nc local:/tmp/mpvsocket | grep -Po '(?<=\{"data":").*(?=","request_id":)' ;;
+		* ) echo '{ "command": ["get_property_string", "media-title"] }' | nc local:/tmp/mpvsocket | sed -e 's|^{"data":"||' -e 's|","request_id":.*||' ;;
 	esac
 }
 
