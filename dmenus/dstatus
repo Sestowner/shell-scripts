@@ -6,7 +6,7 @@ ITEMS="\
 🔋 $(cat /sys/class/power_supply/BAT[0-9]/capacity)%
 🔊 $(pactl list sinks | grep -oEm1 '[0-9]+%' | head -1)
 🌐 $(ip r g 1 | grep -Eo '[0-9\.]+{7}' | tail -1)
-$(date +"📅 %d-%m-%Y%n⌚ %H:%M")
+$(date +"📅 %d-%m-%Y%n⌚ %H:%M")\
 "
 
 case "$(echo "$ITEMS" | grep -n "$(echo "$ITEMS"| dmenu -i)" | cut -d: -f1)" in
