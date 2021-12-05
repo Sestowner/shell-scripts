@@ -1,0 +1,20 @@
+#!/bin/sh
+
+echo 'OK Pleased to meet you'
+
+while [ -n "$*" ]; do
+	case "$1" in
+		--display) export DISPLAY="$2"; shift 1 ;;
+	esac
+	shift 1
+done
+
+while read -r line; do
+	case "$line" in
+		SETDESC*) PROMPT="$(echo "$line" | sed 's/%0A//g;s/SETDESC //;s/%22/"/g')" && echo OK ;;
+		GETPIN) printf "D $(dmenu -P -p "$PROMPT")\nOK\n" ;;
+		BYE) echo 'OK closing connection'; break ;;
+		*) echo OK
+	esac
+done
+

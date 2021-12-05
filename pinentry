@@ -1,0 +1,8 @@
+#!/bin/sh
+
+if [ -n "$DISPLAY" ]; then
+	[ -f /usr/bin/pinentry-dmenu ] && exec /usr/bin/pinentry-dmenu "$@"
+fi
+
+exec /usr/bin/pinentry-curses "$@"
+
