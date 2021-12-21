@@ -1,0 +1,65 @@
+#!/bin/sh
+
+LOCATION="$HOME/.vim/pack/"
+
+[ -n "$1" ] && A="$1" shift || exit
+
+
+search(){
+	wget -qO- "https://api.github.com/search/repositories?q=vim+$(echo $* | tr ' ' '+')" | sed -nE 's/\s+"(full_name|description)": ["]*(.[^"]+)"*,$/\2/p' | sed '$!N;s/\n/ - /'
+}
+
+add(){
+	for a in $@; do
+		[ $(expr "$a" : '.*/.') -eq 0 ] || [ $(echo "$a" | tr -dc '/') != '/' ] && continue
+		url="https://github.com/$a"
+		wget -q --spider "$url" && git clone --depth=1 "$url" "${LOCATION}$(echo "$a" | sed 's#/#/start/#')"
+	done
+}
+
+update(){
+	for dir in $LOCATION*/; do
+		cd $dir
+		for cdir in $PWD/start/*/; do
+			cd $cdir
+			echo "Updating $(basename $dir)/$(basename $cdir)..." && git pull
+			cd ..
+		done
+		cd ..
+	done
+}
+
+list(){
+	find $LOCATION -mindepth 3 -maxdepth 3 -type d -print | sed "s|$LOCATION||;s|/start||"
+}
+
+remove(){
+	cd "$LOCATION" || exit
+
+	for i in $@; do
+		pp="$pp$(find . -mindepth 3 -maxdepth 3 -type d -ipath "*$(echo "$i" | sed -E 's|(.*/)(.*)|\1start/\2|')*" | tr '\n' ' ')"
+	done
+
+	[ -z "$pp" ] && exit
+
+	pn="$(echo "$pp" | sed 's|\./||g;s|/start||g')"
+
+	echo "The following plugins will be REMOVED:"
+	echo "    $pn"
+	read -p "Do you want to continue [Y/n]? " r
+
+	[ -z $(expr "$(echo ${r:-y} | tr '[:upper:]' '[:lower:]')" : '\(y\(es\)*$\)') ] && exit
+
+	rm -rf $pp && echo "Removed $pn"
+
+	find . -maxdepth 2 -type d -empty -exec rmdir -p {} \;
+}
+
+case "$A" in
+	search|s ) [ "$*" != '' ] && search "$*" ;;
+	install|add|a ) [ "$*" != '' ] && add "$@" ;;
+	update|u ) update ;;
+	list|ls|l ) list ;;
+	del|rm|d ) [ "$*" != '' ] && remove "$@" ;;
+esac
+
