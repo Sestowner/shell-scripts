@@ -1,0 +1,10 @@
+#!/bin/sh
+
+q="$(cat ~/.w3m/history 2> /dev/null | fzy -p 'w3m: ')"
+
+[ -z "$q" ] && exit
+
+[ -z $(expr "$q" : "\(^http[s]*://\)") ] && url="https://sestolab.pp.ua/startpage?q=$q" || url="$q"
+
+w3m "$url"
+
