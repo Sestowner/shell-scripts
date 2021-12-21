@@ -1,0 +1,13 @@
+#!/bin/sh
+
+BF="$(echo /sys/class/backlight/*/brightness)"
+CB="$(cat $BF)"
+
+if [ -n "$1" ] && [ "$(expr "$1" : '\(^[-+]*[[:digit:]]\+\)')" = "$1" ]; then
+	new="$([ -n "$(expr "$1" : '\(^[-+]\)')" ] && echo $(($CB $1)) || echo "$1")"
+	[ $new -le 0 ] && new=0
+	echo $new > $BF
+else
+	echo $CB
+fi
+
