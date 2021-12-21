@@ -11,6 +11,7 @@ cmpv() {
 }
 
 cmpris () {
+	command -v dbus-send &> /dev/null || return
 	bus=$(dbus-send --session --dest=org.freedesktop.DBus --type=method_call \
 		--print-reply=literal /org/freedesktop/DBus org.freedesktop.DBus.ListNames |
 		tr ' ' '\n' | grep 'org.mpris.MediaPlayer2' | head -1
