@@ -1,0 +1,38 @@
+#!/bin/sh
+
+SOCKET="/tmp/mpvsh-socket"
+HISTDIR="$HOME/.local/share/mpv/history"
+
+if [ ! -e "$SOCKET" ]; then
+	mpv --force-window=yes --keep-open=yes $@ --input-ipc-server="$SOCKET" ; rm -f "$SOCKET" &
+	exit
+fi
+
+act(){
+	echo "$*" | nc "local:${SOCKET}"
+}
+
+append(){
+	[ -z "$1" ] && exit
+	mkdir -p "$HISTDIR"
+	echo "$1" >> "$HISTDIR/$(date +"%Y%m%d")"
+	act loadfile "$1" append-play
+	notify-send -u low "[MPVSH]" "Added: $1"
+}
+
+
+set -- "${@:-current}"
+
+while [ -n "$*" ]; do
+	case "$1" in
+		toggle|t ) act cycle pause ;;
+		prev|p ) act playlist_prev ;;
+		next|n ) act playlist_next ;;
+		add|a ) append "$2" ;;
+		http*://* ) append "$1" ;;
+		quit|q ) act quit ;;
+		* ) act '{ "command": ["get_property_string", "media-title"] }' | sed -e 's|^{"data":"||' -e 's|","request_id":.*||' -e 's|\\"|"|g' ;;
+	esac
+	shift 1
+done
+
