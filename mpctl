@@ -27,7 +27,7 @@ if [ -n "$2" ]; then
 	PLAYER="$2"
 elif [ "$(pidof mpd || pgrep mopidy)" ]; then
 	PLAYER='mpc'
-elif [ "$(pidof mpv)" ]; then
+elif [ "$(pidof mpv)" ] && [ -S '/tmp/mpvsocket' ]; then
 	PLAYER='mpv'
 elif [ "$(pidof mpvsh)" ]; then
 	PLAYER='mpvsh'
