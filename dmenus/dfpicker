@@ -1,14 +1,14 @@
 #!/bin/sh
 
 pick() {
-	cd $1
+	cd "$1"
 	choice=$(ls -ap | dmenu -i)
-	[ -n $choice ] && case "$choice" in
-		"./" ) pwd ;;
-		*/ ) pick $choice ;;
-		* ) realpath "$choice"
+	[ "$choice" ] && case "$choice" in
+		./) pwd ;;
+		*/*) pick "$choice" ;;
+		*) realpath "$choice" ;;
 	esac
 }
 
-pick ${1:-.}
+pick "${1:-.}"
 
