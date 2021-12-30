@@ -29,6 +29,8 @@ elif [ "$(pidof mpd || pgrep mopidy)" ]; then
 	PLAYER='mpc'
 elif [ "$(pidof mpv)" ]; then
 	PLAYER='mpv'
+elif [ "$(pidof mpvsh)" ]; then
+	PLAYER='mpvsh'
 else
 	PLAYER='mpris'
 fi
@@ -38,6 +40,7 @@ ACTION=$1
 case "$PLAYER" in
 	mpc ) mpc $ACTION ;;
 	mpv ) cmpv $3 ;;
+	mpvsh ) mpvsh $ACTION ;;
 	* ) cmpris
 esac
 
