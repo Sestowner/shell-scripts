@@ -1,7 +1,7 @@
 #!/bin/sh
 
 cmpv() {
-	case $ACTION in
+	case "$ACTION" in
 		toggle ) echo cycle pause | nc local:/tmp/mpvsocket ;;
 		prev ) echo playlist_prev | nc local:/tmp/mpvsocket ;;
 		next ) echo playlist_next | nc local:/tmp/mpvsocket ;;
@@ -17,14 +17,14 @@ cmpris () {
 		tr ' ' '\n' | grep 'org.mpris.MediaPlayer2' | head -1
 	)
 
-	[ -n $bus ] && dbus-send --type=method_call --dest=$bus /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.$(
-		case "$ACTION" in toggle ) echo PlayPause ;; prev ) echo Previous ;; current ) echo OpenUri ;; * ) echo $(echo $ACTION | sed 's/./\u&/') ;; esac
+	[ -n "$bus" ] && dbus-send --type=method_call --dest=$bus /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.$(
+		case "$ACTION" in toggle ) echo PlayPause ;; prev ) echo Previous ;; current ) echo OpenUri ;; * ) echo $(echo "$ACTION" | sed 's/./\u&/') ;; esac
 	)
 }
 
 
 if [ -n "$2" ]; then
-	PLAYER=$2
+	PLAYER="$2"
 elif [ "$(pidof mpd || pgrep mopidy)" ]; then
 	PLAYER='mpc'
 elif [ "$(pidof mpv)" ]; then
@@ -35,12 +35,12 @@ else
 	PLAYER='mpris'
 fi
 
-ACTION=$1
+ACTION="$1"
 
 case "$PLAYER" in
-	mpc ) mpc $ACTION ;;
-	mpv ) cmpv $3 ;;
-	mpvsh ) mpvsh $ACTION ;;
+	mpc ) mpc "$ACTION" ;;
+	mpv ) cmpv "$3" ;;
+	mpvsh ) mpvsh "$ACTION" ;;
 	* ) cmpris
 esac
 
