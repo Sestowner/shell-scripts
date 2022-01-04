@@ -1,0 +1,62 @@
+#!/bin/sh
+
+getSrc(){
+	wget -U "$UA" -qO- "$1"
+}
+
+getImgs(){
+	q="$(echo "$2" | tr '[A-Z]' '[a-z]')"
+	case "$1" in
+		sestolab)
+			getSrc "https://sestolab.pp.ua/wallpapers" | sed -En 's;.*<img.*src="(.*wallpapers[^"]+).*;https://sestolab.pp.ua\1;p'
+			;;
+		ronakeller)
+			getSrc "https://www.ronakeller.org" | sed -En 's/\s+"image": "(.[^"]+).*/\1/p'
+			;;
+		beateoswald)
+			getSrc "http://beateoswald.de" | grep -Eo 'data-src="[^"]+' | sed 's/.*"//'
+			;;
+		henriqueisidoro)
+			getSrc "https://www.henriqueisidoro.com" | sed -En 's/.*<img src="(h.[^"]+).*/\1/p'
+			;;
+		seetheworldandwildlife)
+			getSrc "https://seetheworldandwildlife.de/photography/$(echo -e 'landscapes\ncities' | shuf -n1)" | sed -En 's/\s+<a href="(.*\.jpg)".*/\1/p'
+			;;
+		wallpapercave)
+			q="$(echo "$q" | tr ' ' '-')"
+			getSrc "https://wallpapercave.com/$q-wallpaper" | grep -Eo 'data-url=".*src="[^"]+' | sed -E 's|(.*src=")(.*)|https://wallpapercave.com\2|'
+			;;
+		wallpapers)
+			q="$(echo "$q" | tr ' ' '-')"
+			getSrc "https://wallpapers.com/$q" | grep -Eo 'data-src="[^"]+' | sed -E 's|(data-src=")(.*)|https://wallpapers.com\2|;s/thumbnail/hd/'
+			;;
+		hdwallpapers)
+			q="$(echo "$q" | tr ' ' '+')"
+			getSrc "https://www.hdwallpapers.in/search.html?q=$q" | grep 'img.*srcset' | sed -E "s|(.*src=\")(.*)|https://hdwallpapers.in\2|;s;thumbs/[0-9]+;download;;s/-t1/-$RES/;s/\".*//"
+			;;
+		wallpaperscraft)
+			q="$(echo "$q" | tr ' ' '+')"
+			getSrc "https://wallpaperscraft.com/search/?query=$q" | grep 'img class="wallpapers__image"' | sed -E "s;(.*src=\"|\".*);;g;s/[0-9]+x[0-9]+/$RES/"
+			;;
+	esac
+}
+
+setWallpaper(){
+	getSrc "$1" | display -background black -resize "${RES%x*}x" -gravity center -extent "$RES" -window root -
+}
+
+
+UA="Mozilla/5.0 (iPhone; CPU iPhone OS 12_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148"
+RES="$(cat /sys/class/graphics/*/virtual_size | head -1 | tr ',' 'x')"
+
+search="wallpapercave\nwallpapers\nwallpaperscraft\nhdwallpapers"
+creators="sestolab\nronakeller\nbeateoswald\nhenriqueisidoro\nseetheworldandwildlife"
+
+for p in $([ "$1" ] && printf "$search" || printf "$creators" | shuf); do
+	img=$(getImgs "$p" "$*"| shuf -n1)
+	if [ "$img" ]; then
+		setWallpaper "$img"
+		break
+	fi
+done
+
