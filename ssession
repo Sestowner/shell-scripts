@@ -1,0 +1,22 @@
+#!/bin/sh
+
+[ "$TERM" != "linux" ] && exit
+
+read -p 'Pick session [X, tmux](default: tmux): ' A
+
+if [ "$A" = "x" ]; then
+	exec startx
+	exit
+fi
+
+xres=$(sed -E '/^(#define |\*color)/!d' ~/.Xresources 2> /dev/null) && for i in $(seq 0 15); do
+	color="$(echo "$xres" | sed -En "s/^\*color$i:.[^#A-z]+(.*)/\1/p")"
+	[ $(expr "$color" : '#') != 1 ] && color="$(echo "$xres" | sed -En "s/^#define $color .*(#.*)/\1/p")"
+	printf "$(echo "$color" | sed "s;#;\\\033]P$(printf '%x' $i);")"
+done
+
+setfont LatGrkCyr-8x16 #latarcyrheb-sun16 Lat2-Terminus16 Cyr_a8x14
+
+clear
+exec tmux
+
