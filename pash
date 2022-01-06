@@ -1,0 +1,142 @@
+#!/bin/sh
+
+set +x
+set -f
+
+die(){
+	echo "$*" >&2
+	exit 1
+}
+
+confirm(){
+	read -p "$* " answer
+	[ $(expr "$answer" : '\(^[yY]\)') ]
+}
+
+encrypt(){
+	[ "$1" ] || exit
+	mkdir -pv "$(dirname -- $1)" || die "Couldn't create category '${1%/*}'"
+	if [ "$2" ]; then
+		gpg --yes -er "$GPG_ID" -o "$1" "$2"
+	else
+	{ read d; echo d="$d"; } | gpg --yes -er "$GPG_ID" -o "$1"
+	fi
+}
+
+listPass(){
+	find "${1:-.}" -name "*.gpg" | sed -E "s;(\./|\.gpg$);;g"
+}
+
+showPass(){
+	[ -z "$*" ] && exit
+	file="${2:-$1}.gpg"
+	[ -f "$file" ] || die "Pass file '$file' doesn't exist."
+	[ "$1" = '-f' ] && gpg -dq "$file" || gpg -dq "$file" | head -1
+}
+
+editPass(){
+	[ -z "$*" ] && exit
+	file="${1}.gpg"
+	tmp="$(mktemp -p /dev/shm -ut "${0##*/}.$1.XXXXXXXXXX")"
+	mkdir -p "$(dirname -- "$tmp")"
+	if [ -f "$file" ] ; then
+		gpg -qdo "$tmp" "$file" || exit 1
+	fi
+	"${EDITOR:-vi}" "$tmp"
+	[ -f "$tmp" ] || die "New password not saved."
+	gpg -do - "$file" 2> /dev/null | diff - "$tmp" > /dev/null && die "Password unchanged."
+	mkdir -p "$(dirname -- "$file")"
+	encrypt "$file" "$tmp"
+
+	[ -f "$tmp" ] && rm -rf "$tmp"
+}
+
+movePass(){
+	[ "$1" ] && [ "$2" ] || exit
+	[ -d "$1" ] && { oname="$1" nname="$2"; } || { oname="$1.gpg" nname="$2.gpg"; }
+	mkdir -pv "$(dirname -- "$nname")"
+	mv -iv "$oname" "$nname"
+}
+
+generatePass(){
+	length="${2:-$GENERATED_LENGTH}"
+	[ -n "$(expr "$length" : '\(^[0-9]\+$\)')" ] || die "Error: pass-length '$length' must be a number."
+	[ $length -ge 10 ] || die "Error: pass-length must be greater than ten."
+	[ "$1" = '-n' ] && CHARACTER_SET="[:alnum:]" && shift
+	[ "$1" ] || exit
+	file="${1}.gpg"
+	if [ -f "$file" ]; then
+		content="$(showPass -f "$1")"
+		fl="$(echo "$content" | head -1)"
+		if [ -z "$(cmdOTP getSecret "$fl")" ]; then
+			[ -z "$fl" ] || confirm "Password for \"$1\" already exist. Update it?" && update='y' || exit
+		fi
+	fi
+
+	mkdir -pv "$(dirname -- $file)" || die "Couldn't create category '${file%/*}'"
+	pass="$(LC_ALL=C tr -dc "$CHARACTER_SET" < /dev/urandom | head -c "$length")"
+	[ "$update" ] && echo "$content" | sed "1c${pass}" | encrypt "$file" || echo "$content" | sed "1i${pass}" | encrypt "$file"
+}
+
+removePass(){
+	[ -z "$1" ] && exit
+	confirm "Delete pass file '$1'?" && rm -f "$1.gpg" && rmdir -p "${1%/*}" 2>/dev/null
+}
+
+cmdOTP(){
+	case "$1" in
+		getSecret)
+			[ "$2" ] && echo "$2" | sed -nE '2s/^otpauth:\/\/totp\/.*secret=(.[^&]+).*/\1/p'
+			exit
+			;;
+		otpauth://totp/*)
+			[ -z "$2" ] && die "Error: No password file supplied."
+			file="${2}.gpg"
+			[ -f "$file" ] && content="$(gpg -dq "$file")" || content=''
+			if [ "$content" ] && [ "$(cmdOTP getSecret "$content")" ]; then
+				confirm "OTP for \"$2\" already exist. Update it?" && update='c' || exit
+			fi
+			mkdir -pv "$(dirname -- $file)" || die "Couldn't create category '${file%/*}'"
+			echo "$content" | sed "2${update:-ha}${1}" | encrypt "$file"
+			exit
+			;;
+		*)
+			file="${1}.gpg"
+			if [ -f "$file" ]; then
+				command -v oathtool > /dev/null || die "Error: oathtool not found!"
+				otp="$(cmdOTP getSecret "$(gpg -dq "$file")")"
+				[ "$otp" ] && oathtool -b --totp "$otp"
+			fi
+			;;
+	esac
+}
+
+
+main(){
+	PASH_DIR="${PASSWORD_STORE_DIR:-$HOME/.password-store}"
+	CHARACTER_SET="[:punct:][:alnum:]"
+	GENERATED_LENGTH=20
+
+	command -v gpg > /dev/null || die "GPG not found."
+	mkdir -p "$PASH_DIR" || die "Couldn't create password directory."
+	cd "$PASH_DIR" || die "Can't access password directory."
+	GPG_ID="$(cat .gpg-id 2> /dev/null)" && [ "$GPG_ID" ] || die "No gpg-id found."
+
+	export GPG_TTY=${GPG_TTY:-$(tty)}
+
+	umask 077
+
+	case "$1" in
+		list|ls|l) listPass "$2" ;;
+		show|s) shift; showPass "$@" ;;
+		generate|g) shift; generatePass "$@" ;;
+		edit|ed|e) shift; editPass "$@" ;;
+		move|mv) shift; movePass "$@" ;;
+		remove|rm) shift; removePass "$@" ;;
+		otp) shift; cmdOTP "$@" ;;
+		*) showPass "$@"
+	esac
+}
+
+[ "$1" ] && main "$@"
+
